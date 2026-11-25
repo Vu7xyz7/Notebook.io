@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notebook.io</title>
+    <style>
+        :root {
+            --bg-color: #fbf9f6;
+            --card-bg: #ffffff;
+            --text-color: #2d2a29;
+            --accent-color: #4a7c59;
+            --accent-hover: #385f43;
+            --border-color: #e6e1da;
+            --toolbar-bg: #f3efe9;
+            --highlight-bg: #fff275;
+            --highlight-text: #2d2a29;
+            --content-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        .dark-mode {
+            --bg-color: #111516;
+            --card-bg: #161c1f;
+            --text-color: #e8eceb;
+            --accent-color: #2e4b37;
+            --accent-hover: #38654a;
+            --border-color: #2b3436;
+            --toolbar-bg: #1d2528;
+            --highlight-bg: #2f5e42;
+            --highlight-text: #ffffff;
+        }
+
+        .container.wide-mode {
+            max-width: none;
+            width: 100%;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: var(--content-font);
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 850px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 5px 0;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            letter-spacing: -0.5px;
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        .export-group {
+            display: flex;
+            gap: 8px;
+        }
+
+        button {
+            cursor: pointer;
+            border: 1px solid var(--border-color);
+            background-color: var(--card-bg);
+            color: var(--text-color);
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        button:hover {
+            background-color: var(--toolbar-bg);
+            border-color: #ccc6bd;
+        }
+
+        button.primary {
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+        }
+
+        button.primary:hover {
+            background-color: var(--accent-hover);
+        }
+
+        button:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+
+        .toolbar {
+            background-color: var(--toolbar-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 8px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            position: sticky;
+            top: 10px;
+            z-index: 100;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+        }
+
+        .format-group, .nav-group, .settings-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .format-btn {
+            font-weight: bold;
+            padding: 6px 10px;
+            min-width: 34px;
+            justify-content: center;
+            transition: all 0.15s ease;
+        }
+
+        .settings-group select {
+            border: 1px solid var(--border-color);
+            background-color: var(--card-bg);
+            color: var(--text-color);
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+
+        .settings-group label {
+            font-size: 0.9rem;
+        }
+
+        .format-btn[data-cmd="italic"] { font-style: italic; font-weight: normal; }
+        .format-btn[data-cmd="underline"] { text-decoration: underline; font-weight: normal; }
+        .format-btn[data-cmd="strikeThrough"] { text-decoration: line-through; font-weight: normal; }
+
+        .format-btn.active {
+            background-color: var(--accent-color);
+            color: white;
+            border-color: var(--accent-hover);
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .page-indicator {
+            font-size: 0.9rem;
+            font-weight: 500;
+            padding: 0 10px;
+        }
+
+        .paper-page {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            min-height: 70vh;
+            padding: 40px 50px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+            outline: none;
+            font-size: 1.1rem;
+            line-height: 1.65;
+            letter-spacing: 0.2px;
+        }
+
+        .paper-page:focus {
+            border-color: var(--accent-color);
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+        }
+
+        .paper-page h2 { margin: 20px 0 10px 0; font-size: 1.4rem; }
+        .paper-page p { margin-bottom: 12px; }
+
+        /* Theme-adaptive highlight styling */
+        .paper-page mark.note-highlight {
+            background-color: var(--highlight-bg);
+            color: var(--highlight-text);
+            padding: 1px 4px;
+            border-radius: 3px;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background-color: #2d2a29;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            transition: transform 0.3s ease;
+            z-index: 1000;
+        }
+
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1>Notebook.io</h1>
+            <div class="export-group">
+                <button onclick="copyToClipboard()" title="Copy entire page text">Copy Text</button>
+                <button onclick="downloadTxt()" title="Download as raw TXT file">Download .txt</button>
+                <button onclick="downloadDoc()" title="Download as a Word-friendly document">Download .doc</button>
+            </div>
+        </header>
+
+        <div class="toolbar">
+            <div class="format-group">
+                <button class="format-btn" data-cmd="bold" onmousedown="event.preventDefault(); format('bold')" title="Bold">B</button>
+                <button class="format-btn" data-cmd="italic" onmousedown="event.preventDefault(); format('italic')" title="Italic">I</button>
+                <button class="format-btn" data-cmd="underline" onmousedown="event.preventDefault(); format('underline')" title="Underline">U</button>
+                <button class="format-btn" data-cmd="strikeThrough" onmousedown="event.preventDefault(); format('strikeThrough')" title="Strikethrough">S</button>
+                <button class="format-btn" data-cmd="highlight" onmousedown="event.preventDefault(); toggleHighlight()" title="Highlight">Highlight</button>
+                <button class="format-btn" style="font-weight: normal; font-size: 0.8rem;" onmousedown="event.preventDefault(); clearAllFormatting()" title="Clear Formatting">✕ Clear</button>
+            </div>
+
+            <div class="nav-group">
+                <button onclick="prevPage()" id="prevBtn">← Prev</button>
+                <span class="page-indicator" id="pageIndicator">Page 1 / 1</span>
+                <button onclick="nextPage()" id="nextBtn">Next →</button>
+                <button onclick="createNewPage()" class="primary" style="margin-left: 8px;">＋ New Page</button>
+                <button onclick="deleteCurrentPage()" style="color: #c94c4c; border-color: #fbcbcb;" title="Delete this page">🗑️</button>
+            </div>
+
+            <div class="settings-group">
+                <label for="fontSelector">Font:</label>
+                <select id="fontSelector" onchange="applyFont(this.value)">
+                    <option value="system">System</option>
+                    <option value="Georgia">Georgia</option>
+                    <option value="Courier New">Courier</option>
+                    <option value="Segoe UI">Segoe UI</option>
+                    <option value="Roboto">Roboto</option>
+                </select>
+                <button id="layoutToggleBtn" onclick="toggleLayoutMode()" title="Toggle wide page layout">Wide View</button>
+                <button id="themeToggleBtn" onclick="toggleTheme()" title="Toggle dark/light mode">Dark Mode</button>
+            </div>
+        </div>
+
+        <div id="editor" class="paper-page" contenteditable="true" placeholder="Start typing your notes here..."></div>
+    </div>
+
+    <div id="toast" class="toast">Copied to clipboard!</div>
+
+    <script>
+        const STORAGE_KEY = 'notebook_io_data_v2';
+
+        let notesData = {
+            pages: [
+                "<h2>Welcome to your notes</h2><p>Start typing here! Use the toolbar above to format text. Your progress is <b>automatically saved</b> locally in your browser.</p>"
+            ],
+            theme: 'light',
+            font: 'system',
+            wideMode: false
+        };
+
+        let currentPageIndex = 0;
+        let savedRange = null;
+
+        const editor = document.getElementById('editor');
+        const pageIndicator = document.getElementById('pageIndicator');
+
+        if (localStorage.getItem(STORAGE_KEY)) {
+            try {
+                notesData = JSON.parse(localStorage.getItem(STORAGE_KEY));
+                if (!notesData.pages || notesData.pages.length === 0) {
+                    notesData.pages = [""];
+                }
+                notesData.theme = notesData.theme || 'light';
+                notesData.font = notesData.font || 'system';
+                notesData.wideMode = notesData.wideMode || false;
+            } catch (e) {
+                console.error("Error parsing saved notes, starting fresh.", e);
+            }
+        }
+
+        function saveNotesData() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(notesData));
+        }
+
+        function saveSelection() {
+            const selection = window.getSelection();
+            if (selection.rangeCount > 0) {
+                const range = selection.getRangeAt(0);
+                if (editor.contains(range.startContainer) && editor.contains(range.endContainer)) {
+                    savedRange = range.cloneRange();
+                }
+            }
+        }
+
+        function restoreSelection() {
+            if (savedRange) {
+                const selection = window.getSelection();
+                selection.removeAllRanges();
+                selection.addRange(savedRange);
+            }
+        }
+
+        document.addEventListener('selectionchange', saveSelection);
+
+        document.addEventListener('mousedown', (event) => {
+            if (event.target.closest('#fontSelector')) {
+                saveSelection();
+            }
+        });
+
+        function applyTheme(theme) {
+            document.documentElement.classList.toggle('dark-mode', theme === 'dark');
+            const btn = document.getElementById('themeToggleBtn');
+            if (btn) {
+                btn.innerText = theme === 'dark' ? 'Light Mode' : 'Dark Mode';
+            }
+            notesData.theme = theme;
+            saveNotesData();
+        }
+
+        function setFontSelector(font) {
+            const selector = document.getElementById('fontSelector');
+            if (selector) {
+                selector.value = font;
+            }
+        }
+
+        function applyFont(font, save = true) {
+            restoreSelection();
+            editor.focus();
+            if (!savedRange) return;
+
+            const fontValue = font === 'system'
+                ? "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
+                : font;
+
+            document.execCommand('fontName', false, fontValue);
+            setFontSelector(font);
+            notesData.font = font;
+            if (save) {
+                saveNotesData();
+            }
+        }
+
+        function setLayoutMode(isWide) {
+            const container = document.querySelector('.container');
+            if (container) {
+                container.classList.toggle('wide-mode', isWide);
+            }
+            const btn = document.getElementById('layoutToggleBtn');
+            if (btn) {
+                btn.innerText = isWide ? 'Centered View' : 'Wide View';
+            }
+            notesData.wideMode = !!isWide;
+            saveNotesData();
+        }
+
+        function toggleLayoutMode() {
+            setLayoutMode(!notesData.wideMode);
+        }
+
+        function toggleTheme() {
+            applyTheme(notesData.theme === 'dark' ? 'light' : 'dark');
+        }
+
+        function renderPage() {
+            editor.innerHTML = notesData.pages[currentPageIndex];
+            pageIndicator.innerText = `Page ${currentPageIndex + 1} / ${notesData.pages.length}`;
+            document.getElementById('prevBtn').disabled = (currentPageIndex === 0);
+            document.getElementById('nextBtn').disabled = (currentPageIndex === notesData.pages.length - 1);
+            checkActiveFormats();
+        }
+
+        function getParentMark(node) {
+            while (node && node !== editor) {
+                if (node.nodeType === 1 && node.tagName === 'MARK' && node.classList.contains('note-highlight')) {
+                    return node;
+                }
+                node = node.parentNode;
+            }
+            return null;
+        }
+
+        function toggleHighlight() {
+            const selection = window.getSelection();
+            if (!selection.rangeCount) return;
+
+            const range = selection.getRangeAt(0);
+            if (!editor.contains(range.commonAncestorContainer)) return;
+
+            const existingMark = getParentMark(range.commonAncestorContainer);
+
+            if (existingMark) {
+                const parent = existingMark.parentNode;
+                while (existingMark.firstChild) {
+                    parent.insertBefore(existingMark.firstChild, existingMark);
+                }
+                parent.removeChild(existingMark);
+                parent.normalize();
+            } else if (!range.collapsed) {
+                const mark = document.createElement('mark');
+                mark.className = 'note-highlight';
+                const extracted = range.extractContents();
+                mark.appendChild(extracted);
+                range.insertNode(mark);
+
+                selection.removeAllRanges();
+                const newRange = document.createRange();
+                newRange.selectNodeContents(mark);
+                selection.addRange(newRange);
+            }
+
+            editor.dispatchEvent(new Event('input'));
+            checkActiveFormats();
+            editor.focus();
+        }
+
+        function clearAllFormatting() {
+            document.execCommand('removeFormat', false, null);
+
+            const selection = window.getSelection();
+            if (selection.rangeCount > 0) {
+                const range = selection.getRangeAt(0);
+                const mark = getParentMark(range.commonAncestorContainer);
+                if (mark) {
+                    const parent = mark.parentNode;
+                    while (mark.firstChild) {
+                        parent.insertBefore(mark.firstChild, mark);
+                    }
+                    parent.removeChild(mark);
+                    parent.normalize();
+                }
+            }
+
+            editor.dispatchEvent(new Event('input'));
+            checkActiveFormats();
+            editor.focus();
+        }
+
+        function checkActiveFormats() {
+            const buttons = document.querySelectorAll('.format-btn[data-cmd]');
+            const selection = window.getSelection();
+
+            buttons.forEach((btn) => {
+                const cmd = btn.getAttribute('data-cmd');
+                let isActive = false;
+
+                try {
+                    if (cmd === 'highlight') {
+                        if (selection.rangeCount > 0) {
+                            isActive = !!getParentMark(selection.getRangeAt(0).commonAncestorContainer);
+                        }
+                    } else {
+                        isActive = document.queryCommandState(cmd);
+                    }
+                } catch (e) {}
+
+                btn.classList.toggle('active', isActive);
+            });
+        }
+
+        editor.addEventListener('keyup', () => { saveSelection(); checkActiveFormats(); });
+        editor.addEventListener('mouseup', () => { saveSelection(); checkActiveFormats(); });
+        editor.addEventListener('click', () => { saveSelection(); checkActiveFormats(); });
+        editor.addEventListener('focus', saveSelection);
+
+        editor.addEventListener('input', () => {
+            notesData.pages[currentPageIndex] = editor.innerHTML;
+            saveNotesData();
+        });
+
+        function format(command, value) {
+            document.execCommand(command, false, value || null);
+            editor.dispatchEvent(new Event('input'));
+            checkActiveFormats();
+            editor.focus();
+        }
+
+        function createNewPage() {
+            notesData.pages[currentPageIndex] = editor.innerHTML;
+            notesData.pages.splice(currentPageIndex + 1, 0, "<p></p>");
+            currentPageIndex++;
+            saveNotesData();
+            renderPage();
+            editor.focus();
+        }
+
+        function nextPage() {
+            if (currentPageIndex < notesData.pages.length - 1) {
+                notesData.pages[currentPageIndex] = editor.innerHTML;
+                currentPageIndex++;
+                renderPage();
+            }
+        }
+
+        function prevPage() {
+            if (currentPageIndex > 0) {
+                notesData.pages[currentPageIndex] = editor.innerHTML;
+                currentPageIndex--;
+                renderPage();
+            }
+        }
+
+        function deleteCurrentPage() {
+            if (notesData.pages.length === 1) {
+                if (confirm("This is your only page. Are you sure you want to clear its contents?")) {
+                    editor.innerHTML = "";
+                    notesData.pages[0] = "";
+                    saveNotesData();
+                }
+                return;
+            }
+
+            if (confirm(`Are you sure you want to delete Page ${currentPageIndex + 1}?`)) {
+                notesData.pages.splice(currentPageIndex, 1);
+                if (currentPageIndex >= notesData.pages.length) {
+                    currentPageIndex = notesData.pages.length - 1;
+                }
+                saveNotesData();
+                renderPage();
+            }
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.innerText = message;
+            toast.classList.add('show');
+            setTimeout(() => { toast.classList.remove('show'); }, 2500);
+        }
+
+        function copyToClipboard() {
+            const plainText = editor.innerText;
+            navigator.clipboard.writeText(plainText)
+                .then(() => showToast("Page text copied to clipboard!"))
+                .catch(() => showToast("Failed to copy text. Try again!"));
+        }
+
+        function downloadTxt() {
+            const textContent = editor.innerText;
+            const blob = new Blob([textContent], { type: "text/plain;charset=utf-8" });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = `Notes_Page_${currentPageIndex + 1}.txt`;
+            link.click();
+            URL.revokeObjectURL(link.href);
+        }
+
+        function downloadDoc() {
+            const htmlContent = `
+                <html xmlns:o='urn:schemas-microsoft-com:office:office' 
+                      xmlns:w='urn:schemas-microsoft-com:office:word' 
+                      xmlns='http://www.w3.org/TR/REC-html40'>
+                <head><title>Notes Export</title><style>body { font-family: Arial, sans-serif; line-height: 1.6; } mark { background-color: #fff275; color: #2d2a29; }</style></head>
+                <body>${editor.innerHTML}</body>
+                </html>
+            `;
+
+            const blob = new Blob(['\ufeff' + htmlContent], { type: 'application/msword' });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = `Notes_Page_${currentPageIndex + 1}.doc`;
+            link.click();
+            URL.revokeObjectURL(link.href);
+        }
+
+        applyTheme(notesData.theme);
+        setFontSelector(notesData.font);
+        setLayoutMode(notesData.wideMode);
+        renderPage();
+    </script>
+</body>
+</html>
